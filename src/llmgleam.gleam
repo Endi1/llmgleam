@@ -12,4 +12,3 @@ pub fn completion(
 ) -> Result(types.Completion, types.CompletionError) {
   client.completion(client, model, messages)
 }
-
