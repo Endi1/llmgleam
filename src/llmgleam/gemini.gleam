@@ -12,23 +12,23 @@ pub type GeminiClientInternal {
   GeminiClientInternal(api_key: String)
 }
 
-pub type Content {
+type Content {
   Content(parts: List(Part), role: option.Option(types.Role))
 }
 
-pub type Part {
+type Part {
   TextPart(text: String)
 }
 
-pub type GenerateContentRequest {
+type GenerateContentRequest {
   GenerateContentRequest(contents: List(Content))
 }
 
-pub type GenerateContentResponse {
+type GenerateContentResponse {
   GenerateContentResponse(candidates: List(Candidate))
 }
 
-pub type Candidate {
+type Candidate {
   Candidate(content: Content, finish_reason: option.Option(String))
 }
 
