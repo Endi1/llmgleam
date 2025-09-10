@@ -1,0 +1,160 @@
+* LLMGleam
+
+A Gleam library for interacting with Large Language Model APIs. Currently supports Google's Gemini API with a clean, type-safe interface.
+
+** Features
+
+- 🔒 *Type-safe*: Leverages Gleam's type system for reliable API interactions
+- 🌟 *Clean API*: Simple, intuitive interface for LLM completions
+- 🔌 *Extensible*: Designed to support multiple LLM providers
+- ⚡ *Async*: Built on Gleam's concurrent model
+
+** Installation
+
+Coming soon!
+
+** Quick Start
+
+#+begin_src gleam
+import llmgleam
+import llmgleam/client
+import llmgleam/types
+
+pub fn main() {
+  // Create a client
+  let client = llmgleam.new_client(client.Gemini, "your-api-key-here")
+  
+  // Create a message
+  let messages = [
+    types.ChatMessage(content: "Hello, how are you?", role: types.User)
+  ]
+  
+  // Get completion
+  case llmgleam.completion(client, "gemini-2.5-flash", messages) {
+    Ok(completion) -> {
+      io.println("Response: " <> completion.content)
+    }
+    Error(error) -> {
+      io.println("Error: " <> string.inspect(error))
+    }
+  }
+}
+#+end_src
+
+** API Reference
+
+*** Types
+
+#+begin_src gleam
+// Message roles
+pub type Role {
+  User
+  System
+}
+
+// Chat message
+pub type ChatMessage {
+  ChatMessage(content: String, role: Role)
+}
+
+// Completion response
+pub type Completion {
+  Completion(content: String)
+}
+
+// Error types
+pub type CompletionError {
+  HttpError(String)      // Network/HTTP errors
+  JsonError(String)      // JSON parsing errors  
+  ApiError(String)       // API-specific errors
+}
+#+end_src
+
+*** Functions
+
+**** =new_client(provider: Provider, api_key: String) -> Client=
+
+Creates a new LLM client for the specified provider.
+
+*Parameters:*
+- =provider=: The LLM provider (currently only =client.Gemini=)
+- =api_key=: Your API key for the provider
+
+*Returns:* A =Client= instance
+
+**** =completion(client: Client, model: String, messages: List(ChatMessage)) -> Result(Completion, CompletionError)=
+
+Generates a completion from the LLM.
+
+*Parameters:*
+- =client=: The client instance
+- =model=: Model name (e.g., "gemini-pro")  
+- =messages=: List of chat messages
+
+*Returns:* =Result= with either a =Completion= or =CompletionError=
+
+** Supported Providers
+
+*** Google Gemini
+
+- *Provider*: =client.Gemini=
+- *Models*: =gemini-pro=, =gemini-pro-vision=, etc.
+- *Authentication*: API key via Google AI Studio
+
+Example:
+#+begin_src gleam
+let client = llmgleam.new_client(client.Gemini, "your-gemini-api-key")
+#+end_src
+
+** Error Handling
+
+The library provides structured error handling:
+
+#+begin_src gleam
+case llmgleam.completion(client, model, messages) {
+  Ok(completion) -> {
+    // Handle successful response
+    completion.content
+  }
+  Error(types.HttpError(msg)) -> {
+    // Handle network errors
+    "Network error: " <> msg
+  }
+  Error(types.JsonError(msg)) -> {
+    // Handle JSON parsing errors  
+    "JSON error: " <> msg
+  }
+  Error(types.ApiError(msg)) -> {
+    // Handle API-specific errors
+    "API error: " <> msg
+  }
+}
+#+end_src
+
+** Development
+
+*** Running Tests
+
+#+begin_src bash
+gleam test
+#+end_src
+
+*** Building
+
+#+begin_src bash
+gleam build
+#+end_src
+
+** Contributing
+
+Contributions are welcome! Areas for improvement:
+
+- [ ] Add support for OpenAI GPT models
+- [ ] Add support for Anthropic Claude
+- [ ] Add streaming support
+- [ ] Add function calling support
+- [ ] Add image/multimodal support
+
+** License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
