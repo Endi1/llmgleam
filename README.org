@@ -11,7 +11,7 @@ A Gleam library for interacting with Large Language Model APIs. Currently suppor
 
 ** Installation
 
-Coming soon!
+=gleam add llmgleam=
 
 ** Quick Start
 
