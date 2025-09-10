@@ -1,9 +1,9 @@
-import llmgleam/client
 import envoy
 import gleam/result
 import gleam/string
-import llmgleam/types
 import llmgleam
+import llmgleam/client
+import llmgleam/types
 
 pub fn generate_content_test() {
   case envoy.get("RUN_INTEGRATION_TESTS") {
