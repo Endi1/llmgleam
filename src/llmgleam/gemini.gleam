@@ -6,7 +6,7 @@ import gleam/json
 import gleam/list
 import gleam/option
 import gleam/string
-import types
+import llmgleam/types
 
 pub type GeminiClientInternal {
   GeminiClientInternal(api_key: String)

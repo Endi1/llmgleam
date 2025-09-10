@@ -1,5 +1,5 @@
-import gemini
-import types
+import llmgleam/gemini
+import llmgleam/types
 
 pub type Provider {
   Gemini
