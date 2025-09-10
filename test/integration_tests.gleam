@@ -18,9 +18,10 @@ pub fn generate_content_test() {
           types.ChatMessage(content: "Hello, how are you", role: types.User),
         ])
       assert result.is_ok(completion) == True
-      let _ = result.map(completion, fn(c) {
-        assert string.length(c.content) > 0
-      })
+      let _ =
+        result.map(completion, fn(c) {
+          assert string.length(c.content) > 0
+        })
       Nil
     }
   }
