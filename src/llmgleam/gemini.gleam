@@ -32,6 +32,14 @@ type Candidate {
   Candidate(content: Content, finish_reason: option.Option(String))
 }
 
+pub fn role_to_str(role: types.Role) -> String {
+  case role {
+    types.System -> "system"
+    types.User -> "user"
+    types.Assistant -> "assistant"
+  }
+}
+
 pub fn generate_content(
   client: GeminiClientInternal,
   model: String,
@@ -105,13 +113,6 @@ fn encode_content(content: Content) -> json.Json {
   }
 }
 
-fn role_to_str(role: types.Role) -> String {
-  case role {
-    types.System -> "system"
-    types.User -> "user"
-  }
-}
-
 fn encode_request(request: GenerateContentRequest) -> json.Json {
   json.object([#("contents", json.array(request.contents, encode_content))])
 }
@@ -127,7 +128,7 @@ fn decode_response(
   let content_decoder = {
     use role <- decode.field("role", decode.string)
     use parts <- decode.field("parts", decode.list(part_decoder))
-    decode.success(Content(role: str_to_role(role), parts:))
+    decode.success(Content(role: types.str_to_role(role), parts:))
   }
 
   let candidate_decoder = {
@@ -159,13 +160,5 @@ fn response_to_completion(
       }
     }
     [] -> Error(types.ApiError("The gemini API returned incomplete candidates"))
-  }
-}
-
-fn str_to_role(role_str: String) -> option.Option(types.Role) {
-  case role_str {
-    "user" -> option.Some(types.User)
-    "system" -> option.Some(types.System)
-    _ -> option.None
   }
 }
