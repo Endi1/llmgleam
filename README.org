@@ -149,7 +149,7 @@ gleam build
 
 Contributions are welcome! Areas for improvement:
 
-- [ ] Add support for OpenAI GPT models
+- [X] Add support for OpenAI GPT models
 - [ ] Add support for Anthropic Claude
 - [ ] Add streaming support
 - [ ] Add function calling support
