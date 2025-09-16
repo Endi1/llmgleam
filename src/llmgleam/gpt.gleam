@@ -40,7 +40,6 @@ pub fn role_to_str(role: types.Role) -> String {
   }
 }
 
-
 fn encode_message(message: types.ChatMessage) -> json.Json {
   let base = [
     #("role", json.string(role_to_str(message.role))),
