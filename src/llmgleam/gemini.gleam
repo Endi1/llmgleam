@@ -34,9 +34,9 @@ type Candidate {
 
 pub fn role_to_str(role: types.Role) -> String {
   case role {
-    types.System -> "system"
+    types.System -> "model"
     types.User -> "user"
-    types.Assistant -> "assistant"
+    types.Assistant -> "model"
   }
 }
 
@@ -44,16 +44,17 @@ pub fn generate_content(
   client: GeminiClientInternal,
   model: String,
   messages: List(types.ChatMessage),
+  system_instruction: option.Option(String),
 ) -> Result(types.Completion, types.CompletionError) {
   let request_body = chat_messages_to_request(messages)
-  let json_body = encode_request(request_body)
+  let json_body = encode_request(request_body, system_instruction)
 
   // Create HTTP request
   let req =
     request.new()
     |> request.set_method(http.Post)
     |> request.set_host("generativelanguage.googleapis.com")
-    |> request.set_path("/v1/models/" <> model <> ":generateContent")
+    |> request.set_path("/v1beta/models/" <> model <> ":generateContent")
     |> request.set_query([#("key", client.api_key)])
     |> request.set_header("content-type", "application/json")
     |> request.set_body(json.to_string(json_body))
@@ -113,8 +114,23 @@ fn encode_content(content: Content) -> json.Json {
   }
 }
 
-fn encode_request(request: GenerateContentRequest) -> json.Json {
-  json.object([#("contents", json.array(request.contents, encode_content))])
+fn encode_request(
+  request: GenerateContentRequest,
+  system_instruction: option.Option(String),
+) -> json.Json {
+  case system_instruction {
+    option.None -> {
+      json.object([#("contents", json.array(request.contents, encode_content))])
+    }
+    option.Some(i) -> {
+      let system_content =
+        Content(parts: [TextPart(text: i)], role: option.None)
+      json.object([
+        #("contents", json.array(request.contents, encode_content)),
+        #("systemInstruction", encode_content(system_content)),
+      ])
+    }
+  }
 }
 
 fn decode_response(

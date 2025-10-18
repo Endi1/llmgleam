@@ -124,6 +124,7 @@ pub fn generate_content(
   client: GPTClientInternal,
   model: String,
   messages: List(types.ChatMessage),
+  _system_instruction: option.Option(String),
 ) -> Result(types.Completion, types.CompletionError) {
   let request_body = ChatCompletionRequest(model:, input: messages)
   let json_body = encode_request(request_body)

@@ -1,3 +1,4 @@
+import gleam/option
 import llmgleam/client
 import llmgleam/types
 
@@ -9,6 +10,7 @@ pub fn completion(
   client: client.Client,
   model: String,
   messages: List(types.ChatMessage),
+  system_instruction: option.Option(String)
 ) -> Result(types.Completion, types.CompletionError) {
-  client.completion(client, model, messages)
+  client.completion(client, model, messages, system_instruction)
 }

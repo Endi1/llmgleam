@@ -1,3 +1,4 @@
+import gleam/option
 import envoy
 import gleam/result
 import gleam/string
@@ -17,7 +18,30 @@ pub fn generate_content_gemini_test() {
       let completion =
         llmgleam.completion(client, "gemini-2.5-flash", [
           types.ChatMessage(content: "Hello, how are you", role: types.User),
-        ])
+        ], option.None)
+      assert result.is_ok(completion) == True
+      let _ =
+        result.map(completion, fn(c) {
+          assert string.length(c.content) > 0
+        })
+      Nil
+    }
+  }
+}
+
+pub fn generate_content_gemini_system_test() {
+  case envoy.get("RUN_INTEGRATION_TESTS") {
+    Error(Nil) -> Nil
+    Ok(_) -> {
+      let gemini_key_result = envoy.get("GEMINI_KEY")
+      assert result.is_error(gemini_key_result) != True
+
+      let gemini_key = result.unwrap(gemini_key_result, "default-key")
+      let client = llmgleam.new_client(client.Gemini, gemini_key)
+      let completion =
+        llmgleam.completion(client, "gemini-2.5-flash", [
+          types.ChatMessage(content: "Hello, how are you", role: types.User),
+        ], option.Some("you are a helpful conversationalist"))
       assert result.is_ok(completion) == True
       let _ =
         result.map(completion, fn(c) {
@@ -41,7 +65,7 @@ pub fn generate_content_gpt_test() {
         llmgleam.completion(client, "gpt-5-nano", [
           types.ChatMessage(content: "answer in 5 words", role: types.System),
           types.ChatMessage(content: "Hello, how are you", role: types.User),
-        ])
+        ], option.None)
 
       assert result.is_ok(completion) == True
       let _ =
