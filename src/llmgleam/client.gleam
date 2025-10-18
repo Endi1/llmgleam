@@ -24,10 +24,11 @@ pub fn completion(
   client: Client,
   model: String,
   messages: List(types.ChatMessage),
-  system_instruction: option.Option(String)
+  system_instruction: option.Option(String),
 ) -> Result(types.Completion, types.CompletionError) {
   case client {
-    GeminiClient(c) -> gemini.generate_content(c, model, messages, system_instruction)
+    GeminiClient(c) ->
+      gemini.generate_content(c, model, messages, system_instruction)
     GPTClient(c) -> gpt.generate_content(c, model, messages, system_instruction)
   }
 }
