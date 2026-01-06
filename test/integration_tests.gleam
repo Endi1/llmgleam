@@ -1,3 +1,4 @@
+import llmgleam/messages
 import envoy
 import gleam/option
 import gleam/result
@@ -13,14 +14,14 @@ pub fn generate_content_gemini_test() {
       let gemini_key_result = envoy.get("GEMINI_KEY")
       assert result.is_error(gemini_key_result) != True
 
-      let gemini_key = result.unwrap(gemini_key_result, "default-key")
-      let client = llmgleam.new_client(client.Gemini, gemini_key)
+      let gemini_key = gemini_key_result |> result.unwrap("default-key")
+      let client = client.Gemini |> llmgleam.new_client(gemini_key)
       let completion =
         llmgleam.completion(
           client,
           "gemini-2.5-flash",
           [
-            types.ChatMessage(content: "Hello, how are you", role: types.User),
+            messages.user("Hello, how are you?")
           ],
           option.None,
         )
@@ -48,7 +49,7 @@ pub fn generate_content_gemini_system_test() {
           client,
           "gemini-2.5-flash",
           [
-            types.ChatMessage(content: "Hello, how are you", role: types.User),
+            messages.user("hello, how are you?"),
           ],
           option.Some("you are a helpful conversationalist"),
         )
@@ -76,7 +77,6 @@ pub fn generate_content_gpt_test() {
           client,
           "gpt-5-nano",
           [
-            types.ChatMessage(content: "answer in 5 words", role: types.System),
             types.ChatMessage(content: "Hello, how are you", role: types.User),
           ],
           option.None,

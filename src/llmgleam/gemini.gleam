@@ -34,7 +34,6 @@ type Candidate {
 
 pub fn role_to_str(role: types.Role) -> String {
   case role {
-    types.System -> "model"
     types.User -> "user"
     types.Assistant -> "model"
   }

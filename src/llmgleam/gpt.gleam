@@ -34,7 +34,6 @@ pub type ChatCompletion {
 
 pub fn role_to_str(role: types.Role) -> String {
   case role {
-    types.System -> "developer"
     types.User -> "user"
     types.Assistant -> "assistant"
   }
