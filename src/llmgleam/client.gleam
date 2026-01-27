@@ -80,5 +80,6 @@ pub fn completion(
   request: Request,
   model: String,
 ) -> Result(types.Completion, types.CompletionError) {
-  request.client |> client_completion(model, request.messages, request.system_instruction)
+  request.client
+  |> client_completion(model, request.messages, request.system_instruction)
 }

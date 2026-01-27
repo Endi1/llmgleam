@@ -38,7 +38,12 @@ pub fn generate_content_gemini_system_test() {
 
       let gemini_key = result.unwrap(gemini_key_result, "default-key")
       let client = llmgleam.new_client(client.Gemini, gemini_key)
-      let completion = client |> client.request() |> client.with_message(messages.user("hello, how are you?")) |> client.with_system_instruction("you are a helpful conversationalist") |> client.completion("gemini-2.5-flash")
+      let completion =
+        client
+        |> client.request()
+        |> client.with_message(messages.user("hello, how are you?"))
+        |> client.with_system_instruction("you are a helpful conversationalist")
+        |> client.completion("gemini-2.5-flash")
       assert result.is_ok(completion) == True
       let _ =
         result.map(completion, fn(c) {
@@ -58,7 +63,11 @@ pub fn generate_content_gpt_test() {
 
       let gpt_key = result.unwrap(gpt_key_result, "default-key")
       let client = llmgleam.new_client(client.GPT, gpt_key)
-      let completion = client |> client.request() |> client.with_message(messages.user("Hello, how are you?")) |> client.completion("gpt-5-nano")
+      let completion =
+        client
+        |> client.request()
+        |> client.with_message(messages.user("Hello, how are you?"))
+        |> client.completion("gpt-5-nano")
 
       assert result.is_ok(completion) == True
       let _ =
