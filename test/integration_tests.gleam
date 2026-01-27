@@ -1,10 +1,10 @@
-import llmgleam/messages
 import envoy
 import gleam/option
 import gleam/result
 import gleam/string
 import llmgleam
 import llmgleam/client
+import llmgleam/messages
 import llmgleam/types
 
 pub fn generate_content_gemini_test() {
@@ -17,14 +17,10 @@ pub fn generate_content_gemini_test() {
       let gemini_key = gemini_key_result |> result.unwrap("default-key")
       let client = client.Gemini |> llmgleam.new_client(gemini_key)
       let completion =
-        llmgleam.completion(
-          client,
-          "gemini-2.5-flash",
-          [
-            messages.user("Hello, how are you?")
-          ],
-          option.None,
-        )
+        client
+        |> client.request()
+        |> client.with_message(messages.user("Hello, how are you?"))
+        |> client.completion("gemini-2.5-flash")
       assert result.is_ok(completion) == True
       let _ =
         result.map(completion, fn(c) {
