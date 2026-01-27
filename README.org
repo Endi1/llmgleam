@@ -1,11 +1,12 @@
+
 * LLMGleam
 
-A Gleam library for interacting with Large Language Model APIs. Currently supports Google's Gemini API with a clean, type-safe interface.
+A Gleam library for interacting with Large Language Model APIs. Currently supports Google's Gemini and OpenAI's GPT APIs with a clean, type-safe interface.
 
 ** Features
 
 - 🔒 *Type-safe*: Leverages Gleam's type system for reliable API interactions
-- 🌟 *Clean API*: Simple, intuitive interface for LLM completions
+- 🌟 *Clean API*: Fluent builder pattern for constructing requests
 - 🔌 *Extensible*: Designed to support multiple LLM providers
 - ⚡ *Async*: Built on Gleam's concurrent model
 
@@ -18,19 +19,20 @@ A Gleam library for interacting with Large Language Model APIs. Currently suppor
 #+begin_src gleam
 import llmgleam
 import llmgleam/client
-import llmgleam/types
+import llmgleam/messages
 
 pub fn main() {
   // Create a client
   let client = llmgleam.new_client(client.Gemini, "your-api-key-here")
   
-  // Create a message
-  let messages = [
-    types.ChatMessage(content: "Hello, how are you?", role: types.User)
-  ]
+  // Get completion using the builder pattern
+  let result =
+    client
+    |> client.request()
+    |> client.with_message(messages.user("Hello, how are you?"))
+    |> client.completion("gemini-2.5-flash")
   
-  // Get completion
-  case llmgleam.completion(client, "gemini-2.5-flash", messages) {
+  case result {
     Ok(completion) -> {
       io.println("Response: " <> completion.content)
     }
@@ -43,92 +45,95 @@ pub fn main() {
 
 ** API Reference
 
-*** Types
+*** Creating a Client
 
 #+begin_src gleam
-// Message roles
-pub type Role {
-  User
-  System
-}
+import llmgleam
+import llmgleam/client
 
-// Chat message
-pub type ChatMessage {
-  ChatMessage(content: String, role: Role)
-}
+// For Gemini
+let gemini_client = llmgleam.new_client(client.Gemini, "your-gemini-api-key")
 
-// Completion response
-pub type Completion {
-  Completion(content: String)
-}
+// For GPT
+let gpt_client = llmgleam.new_client(client.GPT, "your-openai-api-key")
+#+end_src
 
-// Error types
-pub type CompletionError {
-  HttpError(String)      // Network/HTTP errors
-  JsonError(String)      // JSON parsing errors  
-  ApiError(String)       // API-specific errors
-}
+*** Building Requests
+
+The library uses a fluent builder pattern for constructing requests:
+
+#+begin_src gleam
+import llmgleam/client
+import llmgleam/messages
+
+let completion =
+  client
+  |> client.request()
+  |> client.with_message(messages.user("Hello, how are you?"))
+  |> client.with_system_instruction("You are a helpful assistant")
+  |> client.completion("gemini-2.5-flash")
+#+end_src
+
+*** Messages
+
+#+begin_src gleam
+import llmgleam/messages
+
+// Create a user message
+let user_msg = messages.user("Hello, how are you?")
+
+// System instructions are added via with_system_instruction
 #+end_src
 
 *** Functions
 
-**** =new_client(provider: Provider, api_key: String) -> Client=
+**** =llmgleam.new_client(provider: Provider, api_key: String) -> Client=
 
 Creates a new LLM client for the specified provider.
 
-*Parameters:*
-- =provider=: The LLM provider (currently only =client.Gemini=)
-- =api_key=: Your API key for the provider
+**** =client.request(client: Client) -> Request=
 
-*Returns:* A =Client= instance
+Initializes a new request builder from a client.
 
-**** =completion(client: Client, model: String, messages: List(ChatMessage)) -> Result(Completion, CompletionError)=
+**** =client.with_message(request: Request, message: Message) -> Request=
 
-Generates a completion from the LLM.
+Adds a message to the request.
 
-*Parameters:*
-- =client=: The client instance
-- =model=: Model name (e.g., "gemini-pro")  
-- =messages=: List of chat messages
+**** =client.with_system_instruction(request: Request, instruction: String) -> Request=
 
-*Returns:* =Result= with either a =Completion= or =CompletionError=
+Adds a system instruction to the request.
+
+**** =client.completion(request: Request, model: String) -> Result(Completion, CompletionError)=
+
+Executes the request and returns a completion.
 
 ** Supported Providers
 
 *** Google Gemini
 
 - *Provider*: =client.Gemini=
-- *Models*: =gemini-pro=, =gemini-pro-vision=, etc.
 - *Authentication*: API key via Google AI Studio
 
-Example:
-#+begin_src gleam
-let client = llmgleam.new_client(client.Gemini, "your-gemini-api-key")
-#+end_src
+*** OpenAI GPT
 
-** Error Handling
+- *Provider*: =client.GPT=
+- *Authentication*: API key via OpenAI
 
-The library provides structured error handling:
+** Example with System Instructions
 
 #+begin_src gleam
-case llmgleam.completion(client, model, messages) {
-  Ok(completion) -> {
-    // Handle successful response
-    completion.content
-  }
-  Error(types.HttpError(msg)) -> {
-    // Handle network errors
-    "Network error: " <> msg
-  }
-  Error(types.JsonError(msg)) -> {
-    // Handle JSON parsing errors  
-    "JSON error: " <> msg
-  }
-  Error(types.ApiError(msg)) -> {
-    // Handle API-specific errors
-    "API error: " <> msg
-  }
-}
+import llmgleam
+import llmgleam/client
+import llmgleam/messages
+
+let client = llmgleam.new_client(client.Gemini, "your-api-key")
+
+let completion =
+  client
+  |> client.request()
+  |> client.with_message(messages.user("hello, how are you?"))
+  |> client.with_system_instruction("you are a helpful conversationalist")
+  |> client.completion("gemini-2.5-flash")
 #+end_src
 
 ** Development
@@ -137,6 +142,11 @@ case llmgleam.completion(client, model, messages) {
 
 #+begin_src bash
 gleam test
+#+end_src
+
+For integration tests (requires API keys):
+#+begin_src bash
+RUN_INTEGRATION_TESTS=1 GEMINI_KEY=your-key GPT_KEY=your-key gleam test
 #+end_src
 
 *** Building
@@ -150,6 +160,8 @@ gleam build
 Contributions are welcome! Areas for improvement:
 
 - [X] Add support for OpenAI GPT models
+- [X] Add support for Gemini API
+- [ ] Add support for Gemini through vertex.ai
 - [ ] Add support for Anthropic Claude
 - [ ] Add streaming support
 - [ ] Add function calling support
