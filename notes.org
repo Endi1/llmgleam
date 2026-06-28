@@ -1,0 +1,113 @@
+* LLMGleam Code Review Notes
+
+A thorough review of the Gleam code in this project, identifying bugs, design issues, and code quality improvements.
+
+** BUGS
+
+*** DONE P0 — GPT silently ignores =system_instruction=
+- File: =src/llmgleam/gpt.gleam=
+- The =_system_instruction= parameter is accepted but never passed to the API.
+- The OpenAI Responses API supports an =instructions= field at the top level.
+- =encode_request= should include it and the signature/plumbing needs updating.
+- Also needs to be threaded through from =client.gleam=.
+
+*** DONE P0 — GPT decoder uses =panic= for malformed API responses
+- State "DONE"       from "TODO"       [2026-06-28 Sun 21:57]
+- File: =src/llmgleam/gpt.gleam= (chat_message_decoder, line ~82)
+- =panic as "could not parse role"= will crash the entire BEAM process on a bad response.
+- Should return =decode.failure(...)= or =Error(types.JsonError(...))= instead.
+
+*** TODO P1 — Gemini role decoding silently drops ="model"= role
+- File: =src/llmgleam/gemini.gleam= (decode_response → content_decoder)
+- =types.str_to_role= only handles ="user"= and ="assistant"=.
+- The Gemini API returns ="model"= for assistant messages, which maps to =option.None=.
+- Currently works accidentally because the role isn't consumed downstream.
+- Fix: add ="model"= as a supported role string in =str_to_role=.
+
+** DESIGN / API ISSUES
+
+*** P1 — API key sent as query parameter (Gemini)
+- File: =src/llmgleam/gemini.gleam= (~line 64)
+- =request.set_query([#("key", client.api_key)])=
+- API keys in URL query strings are logged by proxies, load balancers, and server logs.
+- Google's Gemini API supports the =x-goog-api-key= header or =Authorization: Bearer=.
+- Should use a header instead.
+
+*** P1 — Inconsistent message ordering in =with_message= vs =with_messages=
+- File: =src/llmgleam/client.gleam=
+- =with_message= uses prepend-then-reverse (O(n) every call, O(n²) cumulative).
+- =with_messages= uses =list.append=.
+- Both produce the same result but use different strategies.
+- Fix: make =with_message= use append for consistency and clarity.
+
+*** P2 — Hardcoded =max_tokens: 8192= in Claude
+- File: =src/llmgleam/claude.gleam=
+- Smaller models may have lower limits; users may want smaller/larger outputs.
+- No temperature, top_p, or max_tokens exposed for any provider.
+- Should be configurable or at minimum documented.
+
+*** P2 — No configurable base URL
+- All three provider modules hardcode API hosts (=api.openai.com=, =api.anthropic.com=, etc.).
+- Users of Azure OpenAI, Vertex AI, or proxies cannot use this library.
+- Consider a =ClientConfig= type with a base URL override.
+
+*** P3 — =messages.model()= is a confusing name
+- File: =src/llmgleam/messages.gleam=
+- Creates an =Assistant= role message but uses Gemini's ="model"= convention.
+- Most developers expect =messages.assistant()=.
+- Consider renaming or adding an alias.
+
+*** P3 — =client.request()= name is ambiguous
+- File: =src/llmgleam/client.gleam=
+- Reads like "make a request" but actually creates a builder.
+- =client.new_request()= would be clearer.
+
+** CODE QUALITY / EFFICIENCY
+
+*** P2 — Repeated HTTP request boilerplate across providers
+- Each provider module repeats the same pattern (~30 lines each):
+  build request → hackney.send → check status 200 → json.parse → extract completion
+- Only differences: host, path, headers, request encoding, response decoding.
+- Extracting a shared helper would reduce code size by ~40% and simplify adding new providers.
+
+*** P2 — Inefficient string concatenation in GPT decoder
+- File: =src/llmgleam/gpt.gleam= (chat_message_decoder)
+- =list.fold("", fn(acc, c) { string.append(acc, c.text) })= is O(n²).
+- Use =string.join= or =string_tree= instead.
+
+*** P2 — Inefficient =list.fold= with =list.reverse= inside loop
+- File: =src/llmgleam/gpt.gleam= (chat_completion_decoder)
+- =list.reverse= called on every =Some= iteration during =list.fold=.
+- Better: use =list.filter_map(output, fn(opt) { opt })=.
+
+*** P2 — Missing =///= documentation comments
+- No public function in the entire codebase has a doc comment.
+- Gleam tooling (=gleam docs=) generates documentation from =///= comments.
+- Essential for publishing on Hex with proper docs.
+
+*** P3 — No unit tests
+- Only integration tests requiring live API keys exist.
+- Missing tests for: =role_to_str= /=str_to_role= roundtrips, JSON encoding/decoding
+  (testable with canned JSON), message builder ordering, error handling paths.
+- JSON encode/decode functions are pure — easiest to test, most bug-prone.
+
+*** P3 — README is out of date
+- Claude support exists in code but is still listed as =[ ]= (planned).
+- "Supported Providers" section doesn't mention Claude.
+- Claude API key format (=x-api-key= header vs Bearer) isn't documented.
+
+** SUMMARY OF RECOMMENDED PRIORITIES
+
+| Priority | Issue                                  | Effort  |
+|----------+----------------------------------------+---------|
+| P0       | GPT ignores system_instruction (bug)   | Small   |
+| P0       | panic in GPT decoder (crash risk)      | Trivial |
+| P1       | Gemini role "model" not handled        | Trivial |
+| P1       | API key in query string (security)     | Trivial |
+| P1       | Inconsistent with_message ordering     | Small   |
+| P2       | Add /// doc comments                   | Medium  |
+| P2       | Unit tests for encode/decode           | Medium  |
+| P2       | Extract shared HTTP helper             | Medium  |
+| P2       | Configurable max_tokens / temperature  | Medium  |
+| P2       | Configurable base URL                  | Medium  |
+| P3       | Rename messages.model / client.request | Trivial |

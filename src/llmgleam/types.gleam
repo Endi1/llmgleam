@@ -23,6 +23,7 @@ pub fn str_to_role(role_str: String) -> option.Option(Role) {
   case role_str {
     "user" -> option.Some(User)
     "assistant" -> option.Some(Assistant)
+    "model" -> option.Some(Assistant)
     _ -> option.None
   }
 }
