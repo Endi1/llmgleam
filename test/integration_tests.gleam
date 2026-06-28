@@ -78,3 +78,54 @@ pub fn generate_content_gpt_test() {
     }
   }
 }
+
+pub fn generate_content_claude_test() {
+  case envoy.get("RUN_INTEGRATION_TESTS") {
+    Error(Nil) -> Nil
+    Ok(_) -> {
+      let claude_key_result = envoy.get("CLAUDE_KEY")
+      assert result.is_error(claude_key_result) != True
+
+      let claude_key = result.unwrap(claude_key_result, "default-key")
+      let client = llmgleam.new_client(client.Claude, claude_key)
+      let completion =
+        client
+        |> client.request()
+        |> client.with_message(messages.user("Hello, how are you?"))
+        |> client.completion("claude-sonnet-4-20250514")
+
+      assert result.is_ok(completion) == True
+      let _ =
+        result.map(completion, fn(c) {
+          assert string.length(c.content) > 0
+        })
+      Nil
+    }
+  }
+}
+
+pub fn generate_content_claude_system_test() {
+  case envoy.get("RUN_INTEGRATION_TESTS") {
+    Error(Nil) -> Nil
+    Ok(_) -> {
+      let claude_key_result = envoy.get("CLAUDE_KEY")
+      assert result.is_error(claude_key_result) != True
+
+      let claude_key = result.unwrap(claude_key_result, "default-key")
+      let client = llmgleam.new_client(client.Claude, claude_key)
+      let completion =
+        client
+        |> client.request()
+        |> client.with_message(messages.user("hello, how are you?"))
+        |> client.with_system_instruction("you are a helpful conversationalist")
+        |> client.completion("claude-sonnet-4-20250514")
+
+      assert result.is_ok(completion) == True
+      let _ =
+        result.map(completion, fn(c) {
+          assert string.length(c.content) > 0
+        })
+      Nil
+    }
+  }
+}
