@@ -1,0 +1,6 @@
+[tools]
+gleam = "1.14"
+
+[tasks."tests:integration"]
+description = "Run integration tests with API keys from .env"
+run = "set -a && source .env && set +a && RUN_INTEGRATION_TESTS=1 gleam test"
