@@ -93,7 +93,7 @@ fn chat_message_decoder() -> decode.Decoder(option.Option(types.ChatMessage)) {
       case role {
         option.Some(r) ->
           decode.success(option.Some(types.ChatMessage(role: r, content: text)))
-        option.None -> decode.failure("could not parse role")
+        option.None -> decode.failure(option.None, "could not parse role")
       }
     }
     _ -> {
