@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Gemini role decoding now recognizes `"model"` as an assistant role (previously silently dropped)
+
 ## [0.0.8] — 2026-06-28
 
 ### Fixed
