@@ -78,3 +78,29 @@ pub fn generate_content_gpt_test() {
     }
   }
 }
+
+pub fn generate_content_gpt_system_test() {
+  case envoy.get("RUN_INTEGRATION_TESTS") {
+    Error(Nil) -> Nil
+    Ok(_) -> {
+      let gpt_key_result = envoy.get("GPT_KEY")
+      assert result.is_error(gpt_key_result) != True
+
+      let gpt_key = result.unwrap(gpt_key_result, "default-key")
+      let client = llmgleam.new_client(client.GPT, gpt_key)
+      let completion =
+        client
+        |> client.request()
+        |> client.with_message(messages.user("hello, how are you?"))
+        |> client.with_system_instruction("you are a helpful conversationalist")
+        |> client.completion("gpt-5-nano")
+
+      assert result.is_ok(completion) == True
+      let _ =
+        result.map(completion, fn(c) {
+          assert string.length(c.content) > 0
+        })
+      Nil
+    }
+  }
+}
