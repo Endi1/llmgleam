@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7] — 2026-06-28
+
 ### Added
 - Mise task `tests:integration` for running integration tests with API keys from `.env`
 - Integration test for GPT with system instructions
+- CHANGELOG.md
 
 ### Fixed
 - GPT client now sends `system_instruction` as the `instructions` field in OpenAI Responses API requests (previously the parameter was silently discarded)
@@ -57,7 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests for Gemini
 - MIT License
 
-[Unreleased]: https://github.com/Endi1/llmgleam/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/Endi1/llmgleam/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/Endi1/llmgleam/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/Endi1/llmgleam/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/Endi1/llmgleam/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/Endi1/llmgleam/compare/v0.0.3...v0.0.4
