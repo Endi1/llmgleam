@@ -1,0 +1,66 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Mise task `tests:integration` for running integration tests with API keys from `.env`
+- Integration test for GPT with system instructions
+
+### Fixed
+- GPT client now sends `system_instruction` as the `instructions` field in OpenAI Responses API requests (previously the parameter was silently discarded)
+
+## [0.0.6] — 2025-09-10
+
+### Added
+- Anthropic Claude support (`client.Claude`)
+- Mise configuration for tool version management
+
+### Changed
+- Integration tests can be conditionally run via `RUN_INTEGRATION_TESTS` env var
+
+### Fixed
+- Compilation issues
+
+## [0.0.5] — 2025-09-08
+
+### Added
+- Helper functions `messages.user()` and `messages.model()` for constructing chat messages
+- Fluent builder pattern via `client.request()`, `client.with_message()`, `client.completion()`
+
+## [0.0.4] — 2025-09-07
+
+### Added
+- System instruction support for Gemini via `client.with_system_instruction()`
+
+## [0.0.3] — 2025-09-06
+
+### Added
+- OpenAI GPT support (`client.GPT`)
+- Installation instructions in README
+
+## [0.0.2] — 2025-09-05
+
+### Changed
+- Made internal types opaque for better encapsulation
+
+## [0.0.1] — 2025-09-05
+
+### Added
+- Initial release
+- Google Gemini support (`client.Gemini`)
+- Basic chat completion with `ChatMessage` and `Completion` types
+- Integration tests for Gemini
+- MIT License
+
+[Unreleased]: https://github.com/Endi1/llmgleam/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/Endi1/llmgleam/compare/v0.0.5...v0.0.6
+[0.0.5]: https://github.com/Endi1/llmgleam/compare/v0.0.4...v0.0.5
+[0.0.4]: https://github.com/Endi1/llmgleam/compare/v0.0.3...v0.0.4
+[0.0.3]: https://github.com/Endi1/llmgleam/compare/v0.0.2...v0.0.3
+[0.0.2]: https://github.com/Endi1/llmgleam/compare/v0.0.1...v0.0.2
+[0.0.1]: https://github.com/Endi1/llmgleam/releases/tag/v0.0.1
