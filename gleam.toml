@@ -1,6 +1,5 @@
 name = "llmgleam"
-version = "0.0.7"
-
+version = "0.0.8"
 description = "Gleam bindings for various LLMs"
 licences = ["MIT"]
 repository = { type = "github", user = "Endi1", repo = "llmgleam" }
