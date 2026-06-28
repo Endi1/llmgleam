@@ -1,5 +1,6 @@
 import gleam/list
 import gleam/option
+import llmgleam/claude
 import llmgleam/gemini
 import llmgleam/gpt
 import llmgleam/types
@@ -7,11 +8,13 @@ import llmgleam/types
 pub type Provider {
   Gemini
   GPT
+  Claude
 }
 
 pub opaque type Client {
   GeminiClient(client: gemini.GeminiClientInternal)
   GPTClient(client: gpt.GPTClientInternal)
+  ClaudeClient(client: claude.ClaudeClientInternal)
 }
 
 pub opaque type Request {
@@ -45,6 +48,7 @@ pub fn new_client(provider: Provider, api_key: String) -> Client {
   case provider {
     Gemini -> GeminiClient(gemini.GeminiClientInternal(api_key:))
     GPT -> GPTClient(gpt.GPTClientInternal(api_key:))
+    Claude -> ClaudeClient(claude.ClaudeClientInternal(api_key:))
   }
 }
 
@@ -58,6 +62,8 @@ fn client_completion(
     GeminiClient(c) ->
       gemini.generate_content(c, model, messages, system_instruction)
     GPTClient(c) -> gpt.generate_content(c, model, messages, system_instruction)
+    ClaudeClient(c) ->
+      claude.generate_content(c, model, messages, system_instruction)
   }
 }
 
