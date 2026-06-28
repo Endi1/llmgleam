@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- GPT `chat_message_decoder` no longer crashes the BEAM process on unrecognized roles; returns a proper decode error instead
+
 ## [0.0.7] — 2026-06-28
 
 ### Added
