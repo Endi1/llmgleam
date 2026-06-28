@@ -1,5 +1,5 @@
 [tools]
-gleam = "1.14"
+gleam = "latest"
 
 [tasks."tests:integration"]
 description = "Run integration tests with API keys from .env"
