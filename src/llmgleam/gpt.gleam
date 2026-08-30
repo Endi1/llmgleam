@@ -48,12 +48,19 @@ fn encode_message(message: types.ChatMessage) -> json.Json {
   json.object(base)
 }
 
-fn encode_request(req: ChatCompletionRequest) -> json.Json {
-  let req_json = [
+fn encode_request(
+  req: ChatCompletionRequest,
+  system_instruction: option.Option(String),
+) -> json.Json {
+  let base = [
     #("model", json.string(req.model)),
     #("input", json.array(req.input, encode_message)),
   ]
-  json.object(req_json)
+  let with_system = case system_instruction {
+    option.Some(i) -> [#("instructions", json.string(i)), ..base]
+    option.None -> base
+  }
+  json.object(with_system)
 }
 
 fn usage_decoder() -> decode.Decoder(Usage) {
@@ -86,7 +93,7 @@ fn chat_message_decoder() -> decode.Decoder(option.Option(types.ChatMessage)) {
       case role {
         option.Some(r) ->
           decode.success(option.Some(types.ChatMessage(role: r, content: text)))
-        _ -> panic as "could not parse role"
+        option.None -> decode.failure(option.None, "could not parse role")
       }
     }
     _ -> {
@@ -123,10 +130,10 @@ pub fn generate_content(
   client: GPTClientInternal,
   model: String,
   messages: List(types.ChatMessage),
-  _system_instruction: option.Option(String),
+  system_instruction: option.Option(String),
 ) -> Result(types.Completion, types.CompletionError) {
   let request_body = ChatCompletionRequest(model:, input: messages)
-  let json_body = encode_request(request_body)
+  let json_body = encode_request(request_body, system_instruction)
 
   // Create HTTP request
   let req =
