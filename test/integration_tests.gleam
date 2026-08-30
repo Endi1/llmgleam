@@ -92,7 +92,7 @@ pub fn generate_content_claude_test() {
         client
         |> client.request()
         |> client.with_message(messages.user("Hello, how are you?"))
-        |> client.completion("claude-sonnet-4-20250514")
+        |> client.completion("claude-sonnet-4-5")
 
       assert result.is_ok(completion) == True
       let _ =
@@ -118,7 +118,7 @@ pub fn generate_content_claude_system_test() {
         |> client.request()
         |> client.with_message(messages.user("hello, how are you?"))
         |> client.with_system_instruction("you are a helpful conversationalist")
-        |> client.completion("claude-sonnet-4-20250514")
+        |> client.completion("claude-sonnet-4-5")
       assert result.is_ok(completion) == True
       let _ =
         result.map(completion, fn(c) {

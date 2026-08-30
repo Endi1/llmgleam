@@ -90,8 +90,7 @@ fn response_to_completion(
 ) -> Result(types.Completion, types.CompletionError) {
   case response.content {
     [TextBlock(text), ..] -> Ok(types.Completion(content: text))
-    [] ->
-      Error(types.ApiError("The Claude API returned no content blocks"))
+    [] -> Error(types.ApiError("The Claude API returned no content blocks"))
   }
 }
 
