@@ -50,7 +50,9 @@ pub fn role_to_str(role: types.Role) -> String {
   }
 }
 
-fn chat_messages_to_contents(messages: List(types.ChatMessage)) -> List(Content) {
+fn chat_messages_to_contents(
+  messages: List(types.ChatMessage),
+) -> List(Content) {
   list.map(messages, fn(message) {
     Content(
       parts: [TextPart(text: message.content)],
@@ -179,7 +181,9 @@ fn append_tool_results(
   }
 }
 
-fn encode_content(content: Content) -> Result(json.Json, types.CompletionError) {
+fn encode_content(
+  content: Content,
+) -> Result(json.Json, types.CompletionError) {
   use parts <- result.try(
     list.try_map(content.parts, fn(part) {
       case part {

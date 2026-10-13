@@ -187,7 +187,9 @@ fn chat_completion_decoder() -> decode.Decoder(ChatCompletion) {
 }
 
 @internal
-pub fn decode_response(body: String) -> Result(ChatCompletion, json.DecodeError) {
+pub fn decode_response(
+  body: String,
+) -> Result(ChatCompletion, json.DecodeError) {
   json.parse(body, chat_completion_decoder())
 }
 
