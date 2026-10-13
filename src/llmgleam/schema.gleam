@@ -88,25 +88,35 @@ pub fn described(schema: Schema, description: String) -> Schema {
   }
 }
 
-fn object_fields(properties: List(Property)) -> List(#(String, json.Json)) {
+fn object_fields(
+  properties: List(Property),
+  include_additional_properties: Bool,
+) -> List(#(String, json.Json)) {
   let encoded_properties =
     properties
-    |> list.map(fn(property) { #(property.name, encode(property.schema)) })
+    |> list.map(fn(property) {
+      #(property.name, encode(property.schema, include_additional_properties))
+    })
     |> json.object
   let required =
     properties
     |> list.map(fn(property) { property.name })
     |> json.array(json.string)
-
-  [
+  let fields = [
     #("type", json.string("object")),
     #("properties", encoded_properties),
     #("required", required),
-    #("additionalProperties", json.bool(False)),
   ]
+  case include_additional_properties {
+    True -> list.append(fields, [#("additionalProperties", json.bool(False))])
+    False -> fields
+  }
 }
 
-fn fields(schema: Schema) -> List(#(String, json.Json)) {
+fn fields(
+  schema: Schema,
+  include_additional_properties: Bool,
+) -> List(#(String, json.Json)) {
   case schema {
     StringSchema -> [#("type", json.string("string"))]
     StringEnumSchema(values) -> [
@@ -118,34 +128,42 @@ fn fields(schema: Schema) -> List(#(String, json.Json)) {
     BooleanSchema -> [#("type", json.string("boolean"))]
     ArraySchema(items) -> [
       #("type", json.string("array")),
-      #("items", encode(items)),
+      #("items", encode(items, include_additional_properties)),
     ]
-    ObjectSchema(properties) -> object_fields(properties)
+    ObjectSchema(properties) ->
+      object_fields(properties, include_additional_properties)
     NullableSchema(schema) -> [
       #(
         "anyOf",
         json.preprocessed_array([
-          encode(schema),
+          encode(schema, include_additional_properties),
           json.object([#("type", json.string("null"))]),
         ]),
       ),
     ]
     DescribedSchema(schema, description) -> [
       #("description", json.string(description)),
-      ..fields(schema)
+      ..fields(schema, include_additional_properties)
     ]
   }
 }
 
-fn encode(schema: Schema) -> json.Json {
+fn encode(schema: Schema, include_additional_properties: Bool) -> json.Json {
   schema
-  |> fields
+  |> fields(include_additional_properties)
   |> json.object
 }
 
-/// Encodes typed function parameters as JSON Schema.
+/// Encodes typed function parameters as strict JSON Schema.
 pub fn to_json(parameters: Parameters) -> json.Json {
   parameters.properties
-  |> object_fields
+  |> object_fields(True)
+  |> json.object
+}
+
+/// Encodes typed function parameters for Gemini's OpenAPI schema subset.
+pub fn to_gemini_json(parameters: Parameters) -> json.Json {
+  parameters.properties
+  |> object_fields(False)
   |> json.object
 }

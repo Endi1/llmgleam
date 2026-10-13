@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- GPT and Claude function tool definitions, tool-call decoding, and tool-result continuation
+- GPT, Claude, and Gemini function tool definitions, tool-call decoding, and tool-result continuation
+- Gemini function-call ID and thought-signature preservation across tool turns
 - Fluent request helpers for tool definitions, tool outputs, and multi-turn continuation
 - `llmgleam/tools` helpers for creating strict function tools and tool outputs
 - Type-safe JSON Schema builders in `llmgleam/schema` for function parameters

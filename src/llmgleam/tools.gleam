@@ -1,12 +1,13 @@
 import gleam/dynamic/decode
 import gleam/json
+import gleam/option
 import llmgleam/schema
 import llmgleam/types
 
 /// Defines a function tool using a JSON Schema for its arguments.
 ///
-/// Strict schema validation is enabled. Strict schemas mark every property as
-/// required and set `additionalProperties` to `false`.
+/// Strict schema validation is requested on providers that expose per-tool
+/// strict mode. The generated schema marks every property as required.
 pub fn function(
   name name: String,
   description description: String,
@@ -34,9 +35,13 @@ pub fn decode_arguments(
 }
 
 pub fn output(call: types.ToolCall, output: String) -> types.ToolOutput {
-  types.ToolOutput(call_id: call.call_id, output:)
+  types.ToolOutput(
+    call_id: call.call_id,
+    tool_name: option.Some(call.name),
+    output:,
+  )
 }
 
 pub fn output_for(call_id: String, output: String) -> types.ToolOutput {
-  types.ToolOutput(call_id:, output:)
+  types.ToolOutput(call_id:, tool_name: option.None, output:)
 }

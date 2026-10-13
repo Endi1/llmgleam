@@ -65,25 +65,16 @@ fn client_completion(
         request.previous_response_id,
       )
     GeminiClient(c) ->
-      case
+      gemini.generate_content(
+        c,
+        model,
+        request.messages,
+        request.system_instruction,
         request.tools,
-        request.tool_outputs,
-        request.previous_response_id,
         request.tool_exchanges,
-        request.pending_completion
-      {
-        [], [], option.None, [], option.None ->
-          gemini.generate_content(
-            c,
-            model,
-            request.messages,
-            request.system_instruction,
-          )
-        _, _, _, _, _ ->
-          Error(types.ApiError(
-            "Tool calling is not currently supported by the Gemini client",
-          ))
-      }
+        request.pending_completion,
+        request.tool_outputs,
+      )
     ClaudeClient(c) ->
       claude.generate_content(
         c,
@@ -120,7 +111,7 @@ pub fn with_system_instruction(
 
 /// Adds a function tool that GPT may call.
 ///
-/// Tool calling is currently supported by the GPT and Claude clients.
+/// Tool calling is supported by the GPT, Claude, and Gemini clients.
 pub fn with_tool(request: Request, tool: types.Tool) -> Request {
   Request(..request, tools: list.append(request.tools, [tool]))
 }
@@ -143,10 +134,10 @@ pub fn with_tool_outputs(
   Request(..request, tool_outputs: list.append(request.tool_outputs, outputs))
 }
 
-/// Continues a GPT or Claude tool-calling exchange from an earlier completion.
+/// Continues a tool-calling exchange from an earlier completion.
 ///
 /// Tools and system instructions are retained. GPT continues by response ID;
-/// Claude retains the assistant tool-use blocks and their corresponding results.
+/// Claude and Gemini retain tool calls and their corresponding results.
 pub fn continue_from(
   request: Request,
   completion: types.Completion,
@@ -190,9 +181,26 @@ pub fn continue_from(
       Error(types.ApiError(
         "The completion cannot be continued because it has no response ID",
       ))
-    GeminiClient(_), _, _ ->
+    GeminiClient(_), _, [_, ..] -> {
+      let exchanges = case request.pending_completion {
+        option.Some(previous) ->
+          list.append(request.tool_exchanges, [
+            #(previous, request.tool_outputs),
+          ])
+        option.None -> request.tool_exchanges
+      }
+      Ok(
+        Request(
+          ..request,
+          tool_outputs: [],
+          tool_exchanges: exchanges,
+          pending_completion: option.Some(completion),
+        ),
+      )
+    }
+    GeminiClient(_), _, [] ->
       Error(types.ApiError(
-        "Tool calling is not currently supported by the Gemini client",
+        "The Gemini completion cannot be continued because it has no tool calls",
       ))
   }
 }

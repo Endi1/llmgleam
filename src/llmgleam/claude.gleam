@@ -210,7 +210,13 @@ fn content_block_decoder() -> decode.Decoder(ContentBlock) {
       use input <- decode.field("input", json_value.decoder())
       let arguments = input |> json_value.to_json |> json.to_string
       decode.success(
-        ToolUseBlock(types.ToolCall(id:, call_id: id, name:, arguments:)),
+        ToolUseBlock(types.ToolCall(
+          id:,
+          call_id: id,
+          name:,
+          arguments:,
+          thought_signature: option.None,
+        )),
       )
     }
     _ -> decode.success(IgnoredBlock)

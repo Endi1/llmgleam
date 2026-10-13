@@ -19,7 +19,13 @@ pub fn tool_request_encoding_test() {
       model: "gpt-5-nano",
       input: [messages.user("Weather in Paris?")],
       tools: [tool],
-      tool_outputs: [types.ToolOutput(call_id: "call_123", output: "sunny")],
+      tool_outputs: [
+        types.ToolOutput(
+          call_id: "call_123",
+          tool_name: option.Some("get_weather"),
+          output: "sunny",
+        ),
+      ],
       previous_response_id: option.Some("resp_123"),
     )
 
@@ -54,6 +60,7 @@ pub fn tool_call_maps_to_completion_test() {
       call_id: "call_123",
       name: "get_weather",
       arguments: "{\"city\":\"Paris\"}",
+      thought_signature: option.None,
     )
   let response =
     gpt.ChatCompletion(
@@ -76,6 +83,7 @@ pub fn tool_arguments_decoding_test() {
       call_id: "call_123",
       name: "get_weather",
       arguments: "{\"city\":\"Paris\"}",
+      thought_signature: option.None,
     )
   let decoder = {
     use city <- decode.field("city", decode.string)
@@ -94,10 +102,19 @@ pub fn tool_output_helpers_test() {
       call_id: "call_123",
       name: "get_weather",
       arguments: "{}",
+      thought_signature: option.None,
     )
 
   assert tools.output(call, "sunny")
-    == types.ToolOutput(call_id: "call_123", output: "sunny")
+    == types.ToolOutput(
+      call_id: "call_123",
+      tool_name: option.Some("get_weather"),
+      output: "sunny",
+    )
   assert tools.output_for("call_456", "rainy")
-    == types.ToolOutput(call_id: "call_456", output: "rainy")
+    == types.ToolOutput(
+      call_id: "call_456",
+      tool_name: option.None,
+      output: "rainy",
+    )
 }

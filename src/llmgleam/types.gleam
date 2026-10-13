@@ -30,11 +30,17 @@ pub type Tool {
 }
 
 pub type ToolCall {
-  ToolCall(id: String, call_id: String, name: String, arguments: String)
+  ToolCall(
+    id: String,
+    call_id: String,
+    name: String,
+    arguments: String,
+    thought_signature: option.Option(String),
+  )
 }
 
 pub type ToolOutput {
-  ToolOutput(call_id: String, output: String)
+  ToolOutput(call_id: String, tool_name: option.Option(String), output: String)
 }
 
 pub type CompletionError {

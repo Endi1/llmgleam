@@ -58,6 +58,54 @@ pub fn generate_content_gemini_system_test() {
   }
 }
 
+pub fn generate_content_gemini_tool_test() {
+  case envoy.get("RUN_INTEGRATION_TESTS") {
+    Error(Nil) -> Nil
+    Ok(_) -> {
+      let gemini_key_result = envoy.get("GEMINI_KEY")
+      assert result.is_error(gemini_key_result) != True
+
+      let gemini_key = result.unwrap(gemini_key_result, "default-key")
+      let gemini_client = llmgleam.new_client(client.Gemini, gemini_key)
+      let weather_tool =
+        tools.function(
+          name: "get_weather",
+          description: "Get the current weather for a city",
+          parameters: schema.parameters([
+            schema.property(
+              "city",
+              schema.string()
+                |> schema.described("The city whose weather should be returned"),
+            ),
+          ]),
+        )
+      let request =
+        gemini_client
+        |> client.request()
+        |> client.with_system_instruction(
+          "Call get_weather exactly once, then answer using its output.",
+        )
+        |> client.with_message(messages.user("What is the weather in Paris?"))
+        |> client.with_tool(weather_tool)
+
+      let assert Ok(first) = request |> client.completion("gemini-2.5-flash")
+      let assert [call, ..] = first.tool_calls
+      assert call.name == "get_weather"
+
+      let assert Ok(continued) = client.continue_from(request, first)
+      let final =
+        continued
+        |> client.with_tool_output(tools.output(
+          call,
+          "{\"temperature\":18,\"unit\":\"celsius\"}",
+        ))
+        |> client.completion("gemini-2.5-flash")
+      assert result.is_ok(final) == True
+      Nil
+    }
+  }
+}
+
 pub fn generate_content_gpt_test() {
   case envoy.get("RUN_INTEGRATION_TESTS") {
     Error(Nil) -> Nil

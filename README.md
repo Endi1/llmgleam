@@ -10,7 +10,7 @@ with a clean, type-safe interface.
   interactions
 - 🌟 **Clean API**: Fluent builder pattern for constructing requests
 - 🔌 **Extensible**: Designed to support multiple LLM providers
-- 🛠️ **Tool calling**: Define and execute function tools with GPT and Claude
+- 🛠️ **Tool calling**: Define and execute function tools with GPT, Claude, and Gemini
 - ⚡ **Async**: Built on Gleam's concurrent model
 
 ## Installation
@@ -140,10 +140,12 @@ A response can contain text, tool calls, or both. Text is available as
 which case all outputs should be added with `client.with_tool_outputs` before
 continuing.
 
-Tool calling supports GPT through OpenAI's Responses API and Claude through
-Anthropic's Messages API. GPT continues from a response ID; Claude continues by
-sending the prior assistant tool-use blocks and user tool-result blocks back in
-conversation order. The same client API is used for both providers.
+Tool calling supports GPT through OpenAI's Responses API, Claude through
+Anthropic's Messages API, and Gemini through the GenerateContent API. GPT
+continues from a response ID; Claude and Gemini continue by sending prior tool
+calls and tool results back in conversation order. Gemini thought signatures
+and function-call IDs are preserved automatically. The same client API is used
+for all providers.
 
 ### Functions
 
@@ -173,7 +175,7 @@ conversation order. The same client API is used for both providers.
 
 7.  `client.continue_from(request: Request, completion: Completion) -> Result(Request, CompletionError)`
 
-    Starts the next turn of a GPT or Claude tool-calling exchange.
+    Starts the next turn of a GPT, Claude, or Gemini tool-calling exchange.
 
 ## Supported Providers
 
@@ -238,7 +240,7 @@ Contributions are welcome! Areas for improvement:
 - [ ] Add support for Gemini through vertex.ai
 - [x] Add support for Anthropic Claude
 - [ ] Add streaming support
-- [x] Add function calling support for GPT and Claude
+- [x] Add function calling support for GPT, Claude, and Gemini
 - [ ] Add image/multimodal support
 
 ## License

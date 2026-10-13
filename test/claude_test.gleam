@@ -65,6 +65,7 @@ pub fn tool_continuation_encoding_test() {
       call_id: "toolu_123",
       name: "get_weather",
       arguments: "{\"city\":\"Paris\"}",
+      thought_signature: option.None,
     )
   let completion =
     types.Completion(
@@ -82,7 +83,11 @@ pub fn tool_continuation_encoding_test() {
       tool_exchanges: [],
       pending_completion: option.Some(completion),
       tool_outputs: [
-        types.ToolOutput(call_id: "toolu_123", output: "18 degrees Celsius"),
+        types.ToolOutput(
+          call_id: "toolu_123",
+          tool_name: option.Some("get_weather"),
+          output: "18 degrees Celsius",
+        ),
       ],
     )
 

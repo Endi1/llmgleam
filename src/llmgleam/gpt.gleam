@@ -152,7 +152,13 @@ fn output_item_decoder() -> decode.Decoder(OutputItem) {
       use name <- decode.field("name", decode.string)
       use arguments <- decode.field("arguments", decode.string)
       decode.success(
-        FunctionCallOutput(types.ToolCall(id:, call_id:, name:, arguments:)),
+        FunctionCallOutput(types.ToolCall(
+          id:,
+          call_id:,
+          name:,
+          arguments:,
+          thought_signature: option.None,
+        )),
       )
     }
     _ -> decode.success(IgnoredOutput)
