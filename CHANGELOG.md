@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- GPT function tool definitions and tool-call response decoding
+- Fluent request helpers for tool definitions, tool outputs, and multi-turn continuation
+- `llmgleam/tools` helpers for creating strict function tools and tool outputs
+- Type-safe JSON Schema builders in `llmgleam/schema` for function parameters
+
+### Changed
+- `client.completion` now returns optional text, tool calls, and an optional response ID
+- Tool requests use the same `client.completion` function as text-only requests
+
 ## [0.0.9] — 2026-06-28
 
 ### Fixed

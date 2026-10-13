@@ -169,7 +169,12 @@ fn response_to_completion(
   case response.candidates {
     [candidate, ..] -> {
       case candidate.content.parts {
-        [TextPart(text), ..] -> Ok(types.Completion(content: text))
+        [TextPart(text), ..] ->
+          Ok(types.Completion(
+            content: option.Some(text),
+            tool_calls: [],
+            response_id: option.None,
+          ))
         [] ->
           Error(types.ApiError("The gemini API returned incomplete candidates"))
       }

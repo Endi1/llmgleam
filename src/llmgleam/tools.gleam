@@ -1,0 +1,42 @@
+import gleam/dynamic/decode
+import gleam/json
+import llmgleam/schema
+import llmgleam/types
+
+/// Defines a function tool using a JSON Schema for its arguments.
+///
+/// Strict schema validation is enabled. OpenAI requires strict schemas to mark
+/// every property as required and to set `additionalProperties` to `false`.
+pub fn function(
+  name name: String,
+  description description: String,
+  parameters parameters: schema.Parameters,
+) -> types.Tool {
+  types.Tool(name:, description:, parameters:, strict: True)
+}
+
+/// Defines a function tool and explicitly controls strict schema validation.
+pub fn function_with_strictness(
+  name name: String,
+  description description: String,
+  parameters parameters: schema.Parameters,
+  strict strict: Bool,
+) -> types.Tool {
+  types.Tool(name:, description:, parameters:, strict:)
+}
+
+/// Decodes and validates a tool call's JSON arguments.
+pub fn decode_arguments(
+  call: types.ToolCall,
+  using decoder: decode.Decoder(arguments),
+) -> Result(arguments, json.DecodeError) {
+  json.parse(call.arguments, decoder)
+}
+
+pub fn output(call: types.ToolCall, output: String) -> types.ToolOutput {
+  types.ToolOutput(call_id: call.call_id, output:)
+}
+
+pub fn output_for(call_id: String, output: String) -> types.ToolOutput {
+  types.ToolOutput(call_id:, output:)
+}

@@ -89,7 +89,12 @@ fn response_to_completion(
   response: MessagesResponse,
 ) -> Result(types.Completion, types.CompletionError) {
   case response.content {
-    [TextBlock(text), ..] -> Ok(types.Completion(content: text))
+    [TextBlock(text), ..] ->
+      Ok(types.Completion(
+        content: option.Some(text),
+        tool_calls: [],
+        response_id: option.None,
+      ))
     [] -> Error(types.ApiError("The Claude API returned no content blocks"))
   }
 }
