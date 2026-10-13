@@ -5,8 +5,8 @@ import llmgleam/types
 
 /// Defines a function tool using a JSON Schema for its arguments.
 ///
-/// Strict schema validation is enabled. OpenAI requires strict schemas to mark
-/// every property as required and to set `additionalProperties` to `false`.
+/// Strict schema validation is enabled. Strict schemas mark every property as
+/// required and set `additionalProperties` to `false`.
 pub fn function(
   name name: String,
   description description: String,

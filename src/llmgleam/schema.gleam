@@ -22,7 +22,7 @@ pub opaque type Property {
 /// The top-level object schema for a function's arguments.
 ///
 /// Every property is required and additional properties are disabled, making
-/// these parameters compatible with OpenAI strict mode. Use `nullable` when a
+/// these parameters compatible with strict tool schemas. Use `nullable` when a
 /// required argument may have no value.
 pub opaque type Parameters {
   Parameters(properties: List(Property))

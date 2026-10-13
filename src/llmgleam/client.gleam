@@ -25,6 +25,8 @@ pub opaque type Request {
     tools: List(types.Tool),
     tool_outputs: List(types.ToolOutput),
     previous_response_id: option.Option(String),
+    tool_exchanges: List(#(types.Completion, List(types.ToolOutput))),
+    pending_completion: option.Option(types.Completion),
   )
 }
 
@@ -63,33 +65,36 @@ fn client_completion(
         request.previous_response_id,
       )
     GeminiClient(c) ->
-      case request.tools, request.tool_outputs, request.previous_response_id {
-        [], [], option.None ->
+      case
+        request.tools,
+        request.tool_outputs,
+        request.previous_response_id,
+        request.tool_exchanges,
+        request.pending_completion
+      {
+        [], [], option.None, [], option.None ->
           gemini.generate_content(
             c,
             model,
             request.messages,
             request.system_instruction,
           )
-        _, _, _ ->
+        _, _, _, _, _ ->
           Error(types.ApiError(
-            "Tool calling is currently only supported by the GPT client",
+            "Tool calling is not currently supported by the Gemini client",
           ))
       }
     ClaudeClient(c) ->
-      case request.tools, request.tool_outputs, request.previous_response_id {
-        [], [], option.None ->
-          claude.generate_content(
-            c,
-            model,
-            request.messages,
-            request.system_instruction,
-          )
-        _, _, _ ->
-          Error(types.ApiError(
-            "Tool calling is currently only supported by the GPT client",
-          ))
-      }
+      claude.generate_content(
+        c,
+        model,
+        request.messages,
+        request.system_instruction,
+        request.tools,
+        request.tool_exchanges,
+        request.pending_completion,
+        request.tool_outputs,
+      )
   }
 }
 
@@ -101,6 +106,8 @@ pub fn request(c: Client) -> Request {
     tools: [],
     tool_outputs: [],
     previous_response_id: option.None,
+    tool_exchanges: [],
+    pending_completion: option.None,
   )
 }
 
@@ -113,7 +120,7 @@ pub fn with_system_instruction(
 
 /// Adds a function tool that GPT may call.
 ///
-/// Tool calling is currently supported only by the GPT client.
+/// Tool calling is currently supported by the GPT and Claude clients.
 pub fn with_tool(request: Request, tool: types.Tool) -> Request {
   Request(..request, tools: list.append(request.tools, [tool]))
 }
@@ -136,16 +143,16 @@ pub fn with_tool_outputs(
   Request(..request, tool_outputs: list.append(request.tool_outputs, outputs))
 }
 
-/// Continues a GPT tool-calling exchange from an earlier completion.
+/// Continues a GPT or Claude tool-calling exchange from an earlier completion.
 ///
-/// Existing messages and tool outputs are cleared because the prior response
-/// already refers to the conversation. Tools and system instructions are kept.
+/// Tools and system instructions are retained. GPT continues by response ID;
+/// Claude retains the assistant tool-use blocks and their corresponding results.
 pub fn continue_from(
   request: Request,
   completion: types.Completion,
 ) -> Result(Request, types.CompletionError) {
-  case request.client, completion.response_id {
-    GPTClient(_), option.Some(response_id) ->
+  case request.client, completion.response_id, completion.tool_calls {
+    GPTClient(_), option.Some(response_id), _ ->
       Ok(
         Request(
           ..request,
@@ -154,13 +161,38 @@ pub fn continue_from(
           previous_response_id: option.Some(response_id),
         ),
       )
-    GPTClient(_), option.None ->
+    GPTClient(_), option.None, _ ->
       Error(types.ApiError(
         "The completion cannot be continued because it has no response ID",
       ))
-    _, _ ->
+    ClaudeClient(_), option.Some(_), [_, ..] -> {
+      let exchanges = case request.pending_completion {
+        option.Some(previous) ->
+          list.append(request.tool_exchanges, [
+            #(previous, request.tool_outputs),
+          ])
+        option.None -> request.tool_exchanges
+      }
+      Ok(
+        Request(
+          ..request,
+          tool_outputs: [],
+          tool_exchanges: exchanges,
+          pending_completion: option.Some(completion),
+        ),
+      )
+    }
+    ClaudeClient(_), _, [] ->
       Error(types.ApiError(
-        "Tool calling is currently only supported by the GPT client",
+        "The Claude completion cannot be continued because it has no tool calls",
+      ))
+    ClaudeClient(_), option.None, [_, ..] ->
+      Error(types.ApiError(
+        "The completion cannot be continued because it has no response ID",
+      ))
+    GeminiClient(_), _, _ ->
+      Error(types.ApiError(
+        "Tool calling is not currently supported by the Gemini client",
       ))
   }
 }

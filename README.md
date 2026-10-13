@@ -10,7 +10,7 @@ with a clean, type-safe interface.
   interactions
 - 🌟 **Clean API**: Fluent builder pattern for constructing requests
 - 🔌 **Extensible**: Designed to support multiple LLM providers
-- 🛠️ **Tool calling**: Define and execute function tools with OpenAI GPT
+- 🛠️ **Tool calling**: Define and execute function tools with GPT and Claude
 - ⚡ **Async**: Built on Gleam's concurrent model
 
 ## Installation
@@ -92,10 +92,10 @@ let user_msg = messages.user("Hello, how are you?")
 // System instructions are added via with_system_instruction
 ```
 
-### GPT Tool Calling
+### Tool Calling
 
 Function tools use a typed JSON Schema builder for their arguments. Tool
-arguments returned by GPT are JSON-encoded strings and should still be decoded
+arguments returned by the model are JSON-encoded strings and should be decoded
 and validated before use with `tools.decode_arguments` and a Gleam decoder.
 
 ``` gleam
@@ -140,9 +140,10 @@ A response can contain text, tool calls, or both. Text is available as
 which case all outputs should be added with `client.with_tool_outputs` before
 continuing.
 
-Tool calling currently supports GPT through OpenAI's Responses API. Continuing
-from a completion uses its response ID, so the prior response must remain
-available to OpenAI.
+Tool calling supports GPT through OpenAI's Responses API and Claude through
+Anthropic's Messages API. GPT continues from a response ID; Claude continues by
+sending the prior assistant tool-use blocks and user tool-result blocks back in
+conversation order. The same client API is used for both providers.
 
 ### Functions
 
@@ -172,7 +173,7 @@ available to OpenAI.
 
 7.  `client.continue_from(request: Request, completion: Completion) -> Result(Request, CompletionError)`
 
-    Starts the next turn of a GPT tool-calling exchange.
+    Starts the next turn of a GPT or Claude tool-calling exchange.
 
 ## Supported Providers
 
@@ -237,7 +238,7 @@ Contributions are welcome! Areas for improvement:
 - [ ] Add support for Gemini through vertex.ai
 - [x] Add support for Anthropic Claude
 - [ ] Add streaming support
-- [x] Add function calling support for GPT
+- [x] Add function calling support for GPT and Claude
 - [ ] Add image/multimodal support
 
 ## License

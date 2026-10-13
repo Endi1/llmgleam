@@ -130,6 +130,54 @@ pub fn generate_content_gpt_tool_test() {
   }
 }
 
+pub fn generate_content_claude_tool_test() {
+  case envoy.get("RUN_INTEGRATION_TESTS") {
+    Error(Nil) -> Nil
+    Ok(_) -> {
+      let claude_key_result = envoy.get("CLAUDE_KEY")
+      assert result.is_error(claude_key_result) != True
+
+      let claude_key = result.unwrap(claude_key_result, "default-key")
+      let claude_client = llmgleam.new_client(client.Claude, claude_key)
+      let weather_tool =
+        tools.function(
+          name: "get_weather",
+          description: "Get the current weather for a city",
+          parameters: schema.parameters([
+            schema.property(
+              "city",
+              schema.string()
+                |> schema.described("The city whose weather should be returned"),
+            ),
+          ]),
+        )
+      let request =
+        claude_client
+        |> client.request()
+        |> client.with_system_instruction(
+          "Call get_weather exactly once, then answer using its output.",
+        )
+        |> client.with_message(messages.user("What is the weather in Paris?"))
+        |> client.with_tool(weather_tool)
+
+      let assert Ok(first) = request |> client.completion("claude-sonnet-4-5")
+      let assert [call, ..] = first.tool_calls
+      assert call.name == "get_weather"
+
+      let assert Ok(continued) = client.continue_from(request, first)
+      let final =
+        continued
+        |> client.with_tool_output(tools.output(
+          call,
+          "{\"temperature\":18,\"unit\":\"celsius\"}",
+        ))
+        |> client.completion("claude-sonnet-4-5")
+      assert result.is_ok(final) == True
+      Nil
+    }
+  }
+}
+
 pub fn generate_content_claude_test() {
   case envoy.get("RUN_INTEGRATION_TESTS") {
     Error(Nil) -> Nil
