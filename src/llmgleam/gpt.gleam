@@ -5,7 +5,9 @@ import gleam/http/request
 import gleam/json
 import gleam/list
 import gleam/option
+import gleam/result
 import gleam/string
+import llmgleam/schema
 import llmgleam/types
 
 pub type GPTClientInternal {
@@ -13,7 +15,13 @@ pub type GPTClientInternal {
 }
 
 pub type ChatCompletionRequest {
-  ChatCompletionRequest(model: String, input: List(types.ChatMessage))
+  ChatCompletionRequest(
+    model: String,
+    input: List(types.ChatMessage),
+    tools: List(types.Tool),
+    tool_outputs: List(types.ToolOutput),
+    previous_response_id: option.Option(String),
+  )
 }
 
 pub type Usage {
@@ -24,10 +32,17 @@ type ContentPart {
   ContentPart(text: String)
 }
 
+type OutputItem {
+  MessageOutput(types.ChatMessage)
+  FunctionCallOutput(types.ToolCall)
+  IgnoredOutput
+}
+
 pub type ChatCompletion {
   ChatCompletion(
     id: String,
     output: List(types.ChatMessage),
+    tool_calls: List(types.ToolCall),
     usage: option.Option(Usage),
   )
 }
@@ -40,25 +55,61 @@ pub fn role_to_str(role: types.Role) -> String {
 }
 
 fn encode_message(message: types.ChatMessage) -> json.Json {
-  let base = [
+  json.object([
     #("role", json.string(role_to_str(message.role))),
     #("content", json.string(message.content)),
-  ]
-
-  json.object(base)
+  ])
 }
 
-fn encode_request(
+fn encode_tool(tool: types.Tool) -> json.Json {
+  json.object([
+    #("type", json.string("function")),
+    #("name", json.string(tool.name)),
+    #("description", json.string(tool.description)),
+    #("parameters", schema.to_json(tool.parameters)),
+    #("strict", json.bool(tool.strict)),
+  ])
+}
+
+fn encode_tool_output(output: types.ToolOutput) -> json.Json {
+  json.object([
+    #("type", json.string("function_call_output")),
+    #("call_id", json.string(output.call_id)),
+    #("output", json.string(output.output)),
+  ])
+}
+
+@internal
+pub fn encode_request(
   req: ChatCompletionRequest,
   system_instruction: option.Option(String),
 ) -> json.Json {
+  let input =
+    list.append(
+      list.map(req.input, encode_message),
+      list.map(req.tool_outputs, encode_tool_output),
+    )
   let base = [
     #("model", json.string(req.model)),
-    #("input", json.array(req.input, encode_message)),
+    #("input", json.preprocessed_array(input)),
   ]
+  let with_tools = case req.tools {
+    [] -> base
+    tools -> [#("tools", json.array(tools, encode_tool)), ..base]
+  }
+  let with_previous_response = case req.previous_response_id {
+    option.Some(id) -> [
+      #("previous_response_id", json.string(id)),
+      ..with_tools
+    ]
+    option.None -> with_tools
+  }
   let with_system = case system_instruction {
-    option.Some(i) -> [#("instructions", json.string(i)), ..base]
-    option.None -> base
+    option.Some(i) -> [
+      #("instructions", json.string(i)),
+      ..with_previous_response
+    ]
+    option.None -> with_previous_response
   }
   json.object(with_system)
 }
@@ -75,9 +126,9 @@ fn content_part_decoder() -> decode.Decoder(ContentPart) {
   decode.success(ContentPart(text:))
 }
 
-fn chat_message_decoder() -> decode.Decoder(option.Option(types.ChatMessage)) {
-  use choice_type <- decode.field("type", decode.string)
-  case choice_type {
+fn output_item_decoder() -> decode.Decoder(OutputItem) {
+  use item_type <- decode.field("type", decode.string)
+  case item_type {
     "message" -> {
       use contents <- decode.field(
         "content",
@@ -85,57 +136,91 @@ fn chat_message_decoder() -> decode.Decoder(option.Option(types.ChatMessage)) {
       )
       let text =
         contents
-        |> list.fold("", fn(acc, content) { string.append(acc, content.text) })
+        |> list.map(fn(content) { content.text })
+        |> string.join("")
 
       use role_str <- decode.field("role", decode.string)
-
-      let role = types.str_to_role(role_str)
-      case role {
-        option.Some(r) ->
-          decode.success(option.Some(types.ChatMessage(role: r, content: text)))
-        option.None -> decode.failure(option.None, "could not parse role")
+      case types.str_to_role(role_str) {
+        option.Some(role) ->
+          decode.success(MessageOutput(types.ChatMessage(role:, content: text)))
+        option.None -> decode.failure(IgnoredOutput, "could not parse role")
       }
     }
-    _ -> {
-      decode.success(option.None)
+    "function_call" -> {
+      use id <- decode.field("id", decode.string)
+      use call_id <- decode.field("call_id", decode.string)
+      use name <- decode.field("name", decode.string)
+      use arguments <- decode.field("arguments", decode.string)
+      decode.success(
+        FunctionCallOutput(types.ToolCall(
+          id:,
+          call_id:,
+          name:,
+          arguments:,
+          thought_signature: option.None,
+        )),
+      )
     }
+    _ -> decode.success(IgnoredOutput)
   }
 }
 
 fn chat_completion_decoder() -> decode.Decoder(ChatCompletion) {
   use id <- decode.field("id", decode.string)
-  use output <- decode.field("output", decode.list(chat_message_decoder()))
-  let filtered_output =
-    output
-    |> list.fold([], fn(acc, opt) {
-      case opt {
-        option.Some(value) -> [value, ..acc] |> list.reverse
-        option.None -> acc
+  use output_items <- decode.field("output", decode.list(output_item_decoder()))
+  let #(output, tool_calls) =
+    output_items
+    |> list.fold(#([], []), fn(acc, item) {
+      case item {
+        MessageOutput(message) -> #([message, ..acc.0], acc.1)
+        FunctionCallOutput(call) -> #(acc.0, [call, ..acc.1])
+        IgnoredOutput -> acc
       }
     })
   use usage <- decode.field("usage", decode.optional(usage_decoder()))
-  decode.success(ChatCompletion(id:, output: filtered_output, usage:))
+  decode.success(ChatCompletion(
+    id:,
+    output: list.reverse(output),
+    tool_calls: list.reverse(tool_calls),
+    usage:,
+  ))
 }
 
-fn response_to_completion(
+@internal
+pub fn decode_response(body: String) -> Result(ChatCompletion, json.DecodeError) {
+  json.parse(body, chat_completion_decoder())
+}
+
+@internal
+pub fn response_to_completion(
   chat_completion: ChatCompletion,
 ) -> Result(types.Completion, types.CompletionError) {
-  case chat_completion.output {
-    [choice, ..] -> Ok(types.Completion(content: choice.content))
-    [] -> Error(types.ApiError("The GPT API returned incomplete candidates"))
+  let content = case chat_completion.output {
+    [] -> option.None
+    messages ->
+      messages
+      |> list.map(fn(message) { message.content })
+      |> string.join("")
+      |> option.Some
+  }
+
+  case content, chat_completion.tool_calls {
+    option.None, [] -> Error(types.ApiError("The GPT API returned no output"))
+    _, _ ->
+      Ok(types.Completion(
+        content:,
+        tool_calls: chat_completion.tool_calls,
+        response_id: option.Some(chat_completion.id),
+      ))
   }
 }
 
-pub fn generate_content(
+fn send_request(
   client: GPTClientInternal,
-  model: String,
-  messages: List(types.ChatMessage),
+  request_body: ChatCompletionRequest,
   system_instruction: option.Option(String),
-) -> Result(types.Completion, types.CompletionError) {
-  let request_body = ChatCompletionRequest(model:, input: messages)
+) -> Result(ChatCompletion, types.CompletionError) {
   let json_body = encode_request(request_body, system_instruction)
-
-  // Create HTTP request
   let req =
     request.new()
     |> request.set_method(http.Post)
@@ -146,17 +231,16 @@ pub fn generate_content(
     |> request.set_body(json.to_string(json_body))
 
   case hackney.send(req) {
-    Ok(resp) -> {
+    Ok(resp) ->
       case resp.status {
-        200 -> {
-          case json.parse(resp.body, chat_completion_decoder()) {
-            Ok(response) -> response_to_completion(response)
+        200 ->
+          case decode_response(resp.body) {
+            Ok(response) -> Ok(response)
             Error(err) ->
               Error(types.JsonError(
                 "Failed to decode response " <> string.inspect(err),
               ))
           }
-        }
         _ ->
           Error(types.ApiError(
             "API returned status "
@@ -165,8 +249,33 @@ pub fn generate_content(
             <> resp.body,
           ))
       }
-    }
     Error(err) ->
       Error(types.HttpError("HTTP request failed: " <> string.inspect(err)))
   }
+}
+
+pub fn generate_content(
+  client: GPTClientInternal,
+  model: String,
+  messages: List(types.ChatMessage),
+  system_instruction: option.Option(String),
+  tools: List(types.Tool),
+  tool_outputs: List(types.ToolOutput),
+  previous_response_id: option.Option(String),
+) -> Result(types.Completion, types.CompletionError) {
+  let request_body =
+    ChatCompletionRequest(
+      model:,
+      input: messages,
+      tools:,
+      tool_outputs:,
+      previous_response_id:,
+    )
+
+  use response <- result.try(send_request(
+    client,
+    request_body,
+    system_instruction,
+  ))
+  response_to_completion(response)
 }

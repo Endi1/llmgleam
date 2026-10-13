@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-10-13
+
+### Added
+- GPT, Claude, and Gemini function tool definitions, tool-call decoding, and tool-result continuation
+- Gemini function-call ID and thought-signature preservation across tool turns
+- Fluent request helpers for tool definitions, tool outputs, and multi-turn continuation
+- `llmgleam/tools` helpers for creating strict function tools and tool outputs
+- Type-safe JSON Schema builders in `llmgleam/schema` for function parameters
+
+### Changed
+- `client.completion` now returns optional text, tool calls, and an optional response ID
+- Tool requests use the same `client.completion` function as text-only requests
+
 ## [0.0.9] — 2026-06-28
 
 ### Fixed
@@ -70,7 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests for Gemini
 - MIT License
 
-[Unreleased]: https://github.com/Endi1/llmgleam/compare/v0.0.9...HEAD
+[Unreleased]: https://github.com/Endi1/llmgleam/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Endi1/llmgleam/compare/v0.0.10...v0.1.0
 [0.0.9]: https://github.com/Endi1/llmgleam/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/Endi1/llmgleam/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/Endi1/llmgleam/compare/v0.0.6...v0.0.7

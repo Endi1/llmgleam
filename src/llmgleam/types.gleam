@@ -1,4 +1,5 @@
 import gleam/option
+import llmgleam/schema
 
 pub type Role {
   User
@@ -9,8 +10,37 @@ pub type ChatMessage {
   ChatMessage(content: String, role: Role)
 }
 
+/// A model response containing text, tool calls, or both.
 pub type Completion {
-  Completion(content: String)
+  Completion(
+    content: option.Option(String),
+    tool_calls: List(ToolCall),
+    response_id: option.Option(String),
+  )
+}
+
+/// A function tool that can be called by a model.
+pub type Tool {
+  Tool(
+    name: String,
+    description: String,
+    parameters: schema.Parameters,
+    strict: Bool,
+  )
+}
+
+pub type ToolCall {
+  ToolCall(
+    id: String,
+    call_id: String,
+    name: String,
+    arguments: String,
+    thought_signature: option.Option(String),
+  )
+}
+
+pub type ToolOutput {
+  ToolOutput(call_id: String, tool_name: option.Option(String), output: String)
 }
 
 pub type CompletionError {

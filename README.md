@@ -1,8 +1,8 @@
 # LLMGleam
 
 A Gleam library for interacting with Large Language Model APIs.
-Currently supports Google's Gemini and OpenAI's GPT APIs with a clean,
-type-safe interface.
+Currently supports Google's Gemini, OpenAI's GPT, and Anthropic's Claude APIs
+with a clean, type-safe interface.
 
 ## Features
 
@@ -10,6 +10,7 @@ type-safe interface.
   interactions
 - 🌟 **Clean API**: Fluent builder pattern for constructing requests
 - 🔌 **Extensible**: Designed to support multiple LLM providers
+- 🛠️ **Tool calling**: Define and execute function tools with GPT, Claude, and Gemini
 - ⚡ **Async**: Built on Gleam's concurrent model
 
 ## Installation
@@ -19,6 +20,7 @@ type-safe interface.
 ## Quick Start
 
 ``` gleam
+import gleam/option
 import llmgleam
 import llmgleam/client
 import llmgleam/messages
@@ -36,7 +38,7 @@ pub fn main() {
 
   case result {
     Ok(completion) -> {
-      io.println("Response: " <> completion.content)
+      io.println("Response: " <> option.unwrap(completion.content, ""))
     }
     Error(error) -> {
       io.println("Error: " <> string.inspect(error))
@@ -58,6 +60,9 @@ let gemini_client = llmgleam.new_client(client.Gemini, "your-gemini-api-key")
 
 // For GPT
 let gpt_client = llmgleam.new_client(client.GPT, "your-openai-api-key")
+
+// For Claude
+let claude_client = llmgleam.new_client(client.Claude, "your-anthropic-api-key")
 ```
 
 ### Building Requests
@@ -87,6 +92,61 @@ let user_msg = messages.user("Hello, how are you?")
 // System instructions are added via with_system_instruction
 ```
 
+### Tool Calling
+
+Function tools use a typed JSON Schema builder for their arguments. Tool
+arguments returned by the model are JSON-encoded strings and should be decoded
+and validated before use with `tools.decode_arguments` and a Gleam decoder.
+
+``` gleam
+import llmgleam/client
+import llmgleam/messages
+import llmgleam/schema
+import llmgleam/tools
+
+let weather_tool =
+  tools.function(
+    name: "get_weather",
+    description: "Get the current weather for a location",
+    parameters: schema.parameters([
+      schema.property(
+        "location",
+        schema.string()
+        |> schema.described("The city and country, such as Paris, France"),
+      ),
+    ]),
+  )
+
+let request =
+  gpt_client
+  |> client.request()
+  |> client.with_message(messages.user("What is the weather in Paris?"))
+  |> client.with_tool(weather_tool)
+
+let assert Ok(first) = client.completion(request, "gpt-5-nano")
+let assert [call, ..] = first.tool_calls
+
+// Run the function in your application, then return its output to GPT.
+let output = tools.output(call, "{\"temperature\":18,\"unit\":\"celsius\"}")
+let assert Ok(continued) = client.continue_from(request, first)
+let final =
+  continued
+  |> client.with_tool_output(output)
+  |> client.completion("gpt-5-nano")
+```
+
+A response can contain text, tool calls, or both. Text is available as
+`completion.content: Option(String)`. Models can request multiple calls, in
+which case all outputs should be added with `client.with_tool_outputs` before
+continuing.
+
+Tool calling supports GPT through OpenAI's Responses API, Claude through
+Anthropic's Messages API, and Gemini through the GenerateContent API. GPT
+continues from a response ID; Claude and Gemini continue by sending prior tool
+calls and tool results back in conversation order. Gemini thought signatures
+and function-call IDs are preserved automatically. The same client API is used
+for all providers.
+
 ### Functions
 
 1.  `llmgleam.new_client(provider: Provider, api_key: String) -> Client`
@@ -107,7 +167,15 @@ let user_msg = messages.user("Hello, how are you?")
 
 5.  `client.completion(request: Request, model: String) -> Result(Completion, CompletionError)`
 
-    Executes the request and returns a completion.
+    Executes the request and returns text, tool calls, or both.
+
+6.  `client.with_tool(request: Request, tool: Tool) -> Request`
+
+    Adds a function tool to a GPT request.
+
+7.  `client.continue_from(request: Request, completion: Completion) -> Result(Request, CompletionError)`
+
+    Starts the next turn of a GPT, Claude, or Gemini tool-calling exchange.
 
 ## Supported Providers
 
@@ -120,6 +188,11 @@ let user_msg = messages.user("Hello, how are you?")
 
 - **Provider**: `client.GPT`
 - **Authentication**: API key via OpenAI
+
+### Anthropic Claude
+
+- **Provider**: `client.Claude`
+- **Authentication**: API key via Anthropic
 
 ## Example with System Instructions
 
@@ -165,9 +238,9 @@ Contributions are welcome! Areas for improvement:
 - [x] Add support for OpenAI GPT models
 - [x] Add support for Gemini API
 - [ ] Add support for Gemini through vertex.ai
-- [ ] Add support for Anthropic Claude
+- [x] Add support for Anthropic Claude
 - [ ] Add streaming support
-- [ ] Add function calling support
+- [x] Add function calling support for GPT, Claude, and Gemini
 - [ ] Add image/multimodal support
 
 ## License
